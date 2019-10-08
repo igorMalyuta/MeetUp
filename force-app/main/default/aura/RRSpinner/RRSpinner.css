@@ -1,0 +1,25 @@
+/**
+ * Created by Leonid Bartenev
+ */
+
+
+.THIS.rr-spinner{
+    opacity: 1;
+    visibility: visible;
+    transition: 0.4s linear;
+    z-index: 1200;
+    border-radius: 5px;
+}
+
+.THIS.rr-spinner.fixed{
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+}
+
+.THIS.rr-hide{
+    opacity: 0;
+    visibility: hidden;
+}

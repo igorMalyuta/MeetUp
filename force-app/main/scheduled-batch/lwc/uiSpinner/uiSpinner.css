@@ -1,0 +1,23 @@
+/**
+ * Created by Igor Malyuta on 03.10.2019.
+ */
+.rr-spinner{
+    opacity: 1;
+    visibility: visible;
+    transition: 0.4s linear;
+    z-index: 1200;
+    border-radius: 5px;
+}
+
+.rr-spinner.fixed{
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+}
+
+.rr-hide{
+    opacity: 0;
+    visibility: hidden;
+}

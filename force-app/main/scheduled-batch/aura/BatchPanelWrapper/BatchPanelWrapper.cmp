@@ -1,0 +1,7 @@
+<!--
+ - Created by Igor Malyuta on 03.10.2019.
+ -->
+
+<aura:component description="BatchPanelWrapper" implements="forceCommunity:availableForAllPageTypes,force:appHostable">
+    <c:batchControlPanel/>
+</aura:component>

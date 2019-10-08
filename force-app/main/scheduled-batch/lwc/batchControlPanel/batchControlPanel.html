@@ -1,0 +1,128 @@
+<!--
+ - Created by Igor Malyuta on 03.10.2019.
+ -->
+
+<!-- Batch Control Panel -->
+<template>
+    <lightning-card title="Batches">
+        <div class="bcp-panel">
+            <c-ui-spinner></c-ui-spinner>
+            <template if:true={jobs}>
+                <!-- Batch Table -->
+                <table class="slds-table slds-table_cell-buffer slds-no-row-hover slds-table_bordered">
+                    <thead>
+                    <tr class="slds-line-height_reset">
+                        <th scope="col">
+                            <div class="slds-truncate" title="Job Name" style="text-align: left">Job Name</div>
+                        </th>
+                        <th scope="col">
+                            <div class="slds-truncate" title="State">State</div>
+                        </th>
+                        <th scope="col">
+                            <div class="slds-truncate" title="Previous launch">Previous launch</div>
+                        </th>
+                        <th scope="col">
+                            <div class="slds-truncate" title="Next launch">Next launch</div>
+                        </th>
+                        <th scope="col">
+                            <div class="slds-truncate" title="Interval mode">Interval mode</div>
+                        </th>
+                        <th scope="col">
+                            <div class="slds-truncate" title="Interval">Interval</div>
+                        </th>
+                        <th scope="col">
+                            <div class="slds-truncate" title="Action">Action</div>
+                        </th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <template for:each={jobs} for:item="job">
+                        <tr key={job.jobName} class="slds-hint-parent bcp-table">
+                            <td data-label="Job Name" class="batch-name-col">
+                                <p class="slds-text-heading--label-medium slds-text-title_bold">{job.label}</p>
+                            </td>
+                            <td><span class={job.css}>{job.state}</span></td>
+                            <td>
+                                <template if:true={job.prevLaunch}>
+                                    <a href="/lightning/setup/AsyncApexJobs/home">
+                                        <lightning-formatted-date-time value={job.prevLaunch} year="numeric"
+                                                                       month="short"
+                                                                       day="2-digit" hour="numeric" minute="numeric"
+                                                                       second="numeric"
+                                                                       weekday="long"></lightning-formatted-date-time>
+                                    </a>
+                                </template>
+                                <template if:true={job.prevJob}>
+                                    <template if:true={job.prevJob.ExtendedStatus}>
+                                        <lightning-helptext
+                                                class="slds-p-left--xx-small"
+                                                content={job.prevJob.ExtendedStatus}
+                                                icon-name="utility:warning"
+                                                icon-variant="error"></lightning-helptext>
+                                    </template>
+                                </template>
+                            </td>
+                            <td>
+                                <template if:true={job.nextLaunch}>
+                                    <lightning-formatted-date-time value={job.nextLaunch} year="numeric" month="short"
+                                                                   day="2-digit" hour="numeric" minute="numeric"
+                                                                   second="numeric"
+                                                                   weekday="long"></lightning-formatted-date-time>
+                                </template>
+                            </td>
+                            <td>{job.intervalMode}</td>
+                            <td>{job.interval}</td>
+                            <td>
+                                <template if:true={job.isStopped}>
+                                    <lightning-button-icon title={job.jobName}
+                                                           icon-name="utility:play"
+                                                           size="small"
+                                                           variant="border-filled"
+                                                           alternative-text="Run Batch"
+                                                           onclick={handleRun}></lightning-button-icon>
+                                </template>
+                                <template if:false={job.isStopped}>
+                                    <lightning-button-icon class="button-stop"
+                                            title={job.jobName}
+                                                           icon-name="utility:stop"
+                                                           size="small"
+                                                           variant="border-filled"
+                                                           alternative-text="Stop Batch"
+                                                           onclick={handleStop}></lightning-button-icon>
+                                </template>
+                            </td>
+                        </tr>
+                    </template>
+                    </tbody>
+                </table>
+            </template>
+            <!-- Add Batch on Panel -->
+            <template if:true={showAddNew}>
+                <div class="bcp-detail">
+                    <lightning-combobox
+                            label="Select Batch"
+                            placeholder="Select Apex Class"
+                            value={batchClass}
+                            onchange={handleClassChange}
+                            options={batchClasses}></lightning-combobox>
+                    <lightning-input label="Batch label" value={batchLabel}
+                                     onchange={handleLabelChange}></lightning-input>
+                    <lightning-combobox
+                            label="Select Interval mode"
+                            value={batchIntervalMode}
+                            onchange={handleModeChange}
+                            options={intervalMods}></lightning-combobox>
+                    <lightning-input type="number" label="Relaunch interval"
+                                     value={batchInterval} onchange={handleIntervalChange}
+                                     step="1" min="1"></lightning-input>
+                    <lightning-input type="number" label="Scope size"
+                                     value={batchScopeSize} onchange={handleScopeChange}
+                                     step="1" min="1" max="200"></lightning-input>
+                    <lightning-button label="Add to panel"
+                                      title="Add to panel"
+                                      onclick={handleAddBatch}></lightning-button>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+</template>
