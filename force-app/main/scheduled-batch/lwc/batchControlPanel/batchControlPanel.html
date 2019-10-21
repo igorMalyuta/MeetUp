@@ -39,11 +39,14 @@
                     <template for:each={jobs} for:item="job">
                         <tr key={job.jobName} class="slds-hint-parent bcp-table">
                             <td data-label="Job Name" class="batch-name-col">
-                                <p class="slds-text-heading--label-medium slds-text-title_bold">{job.label}</p>
+                                <!-- Record Detail -->
+                                <a href="javascript:void(0);"  data-id={job.detailId}
+                                   onclick={handleEditDetail}>{job.label}</a>
                             </td>
                             <td><span class={job.css}>{job.state}</span></td>
                             <td>
                                 <template if:true={job.prevLaunch}>
+                                    <!-- Apex Jobs page -->
                                     <a href="/lightning/setup/AsyncApexJobs/home">
                                         <lightning-formatted-date-time value={job.prevLaunch} year="numeric"
                                                                        month="short"
@@ -53,6 +56,7 @@
                                     </a>
                                 </template>
                                 <template if:true={job.prevJob}>
+                                    <!-- Previous launch Error -->
                                     <template if:true={job.prevJob.ExtendedStatus}>
                                         <lightning-helptext
                                                 class="slds-p-left--xx-small"
@@ -76,19 +80,36 @@
                                 <template if:true={job.isStopped}>
                                     <lightning-button-icon title={job.jobName}
                                                            icon-name="utility:play"
+                                                           icon-class="slds-text-color_success"
                                                            size="small"
                                                            variant="border-filled"
                                                            alternative-text="Run Batch"
                                                            onclick={handleRun}></lightning-button-icon>
+                                    <lightning-button-icon title={job.jobName}
+                                                           value={job.detailId}
+                                                           icon-name="utility:delete"
+                                                           icon-class="slds-text-color--weak"
+                                                           class="slds-p-left--small"
+                                                           size="small"
+                                                           variant="border-filled"
+                                                           alternative-text="Delete Batch"
+                                                           onclick={handleDelete}></lightning-button-icon>
                                 </template>
                                 <template if:false={job.isStopped}>
-                                    <lightning-button-icon class="button-stop"
-                                            title={job.jobName}
+                                    <lightning-button-icon title={job.jobName}
                                                            icon-name="utility:stop"
+                                                           icon-class="slds-text-color_error"
                                                            size="small"
                                                            variant="border-filled"
                                                            alternative-text="Stop Batch"
                                                            onclick={handleStop}></lightning-button-icon>
+                                    <lightning-button-icon title={job.jobName}
+                                                           icon-name="utility:delete"
+                                                           class="slds-p-left--small"
+                                                           size="small"
+                                                           variant="border-filled"
+                                                           alternative-text="Delete Batch"
+                                                           disabled></lightning-button-icon>
                                 </template>
                             </td>
                         </tr>

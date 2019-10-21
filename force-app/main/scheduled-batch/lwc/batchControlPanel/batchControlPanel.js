@@ -3,7 +3,7 @@
  */
 
 import {LightningElement, track, wire} from 'lwc';
-import {refreshApex} from '@salesforce/apex';
+import {NavigationMixin} from 'lightning/navigation';
 import {ShowToastEvent} from 'lightning/platformShowToastEvent';
 
 import getData from '@salesforce/apex/BatchControlPanelRemote.getData';
@@ -11,9 +11,10 @@ import getJobs from '@salesforce/apex/BatchControlPanelRemote.getJobs';
 import getState from '@salesforce/apex/BatchControlPanelRemote.getState';
 import runBatch from '@salesforce/apex/BatchControlPanelRemote.runBatch';
 import stopBatch from '@salesforce/apex/BatchControlPanelRemote.stopBatch';
+import deleteBatch from '@salesforce/apex/BatchControlPanelRemote.deleteBatch';
 import addBatch from '@salesforce/apex/BatchControlPanelRemote.addBatch';
 
-export default class BatchControlPanel extends LightningElement {
+export default class BatchControlPanel extends NavigationMixin(LightningElement) {
 
     @track notAddedBatches;
     @track showAddNew;
@@ -21,6 +22,7 @@ export default class BatchControlPanel extends LightningElement {
     @track jobs;
     @track initialized = false;
     @track inProcess = false;
+    spinner;
 
     //Add new batch
     @track batchClass;
@@ -30,37 +32,30 @@ export default class BatchControlPanel extends LightningElement {
     @track batchScopeSize;
 
     connectedCallback() {
-        this.resetInputFields();
-        let spinner;
+        setInterval(() => {
+            if (!this.inProcess) {
+                if (this.initialized) {
+                    if (this.spinner === undefined) this.spinner = this.template.querySelector('c-ui-spinner');
 
-        // setInterval(() => {
-        //     if (!this.inProcess) {
-        //         if (this.initialized) {
-        //             if(!spinner) spinner = this.template.querySelector('c-ui-spinner');
-        //
-        //             this.inProcess = true;
-        //             spinner.show();
-        //             getData()
-        //                 .then(data => {
-        //                     let wrapper = JSON.parse(data);
-        //                     this.notAddedBatches = wrapper.availableBatches;
-        //                     this.showAddNew = this.notAddedBatches.length > 0;
-        //                     this.mods = wrapper.intervalMods;
-        //                     this.jobs = wrapper.jobWrappers.length > 0 ? wrapper.jobWrappers : undefined;
-        //
-        //                     this.inProcess = false;
-        //                     if (spinner) spinner.hide();
-        //                 })
-        //                 .catch(error => {
-        //                     console.log('Interval refresh error: ' + JSON.stringify(error));
-        //                 });
-        //         }
-        //     }
-        // }, 1500);
+                    this.inProcess = true;
+                    getJobs()
+                        .then(data => {
+                            let jobs = JSON.parse(data);
+                            this.jobs = jobs.length > 0 ? jobs : undefined;
+
+                            this.inProcess = false;
+                        })
+                        .catch(error => {
+                            console.log('Interval refresh error: ' + JSON.stringify(error));
+                        });
+
+                }
+            }
+        }, 1500);
     }
 
     @wire(getData)
-    wireData({error, data}) {
+    wireData({data}) {
         if (data) {
             let wrapper = JSON.parse(data);
             this.notAddedBatches = wrapper.availableBatches;
@@ -68,16 +63,10 @@ export default class BatchControlPanel extends LightningElement {
             this.mods = wrapper.intervalMods;
             this.jobs = wrapper.jobWrappers.length > 0 ? wrapper.jobWrappers : undefined;
 
+            this.resetInputFields();
             if (!this.initialized) this.initialized = true;
         }
     }
-
-    // @wire(getJobs)
-    // wireJobs({error, data}) {
-    //     if (data) {
-    //         if(!this.inProcess) this.jobs = JSON.parse(data);
-    //     }
-    // }
 
     //Select options: --------------------------------------------------------------------------------------------------
     get batchClasses() {
@@ -106,7 +95,74 @@ export default class BatchControlPanel extends LightningElement {
         return mods;
     }
 
-    //Handlers OnChange: -----------------------------------------------------------------------------------------------
+    //Batch Action Handlers: -------------------------------------------------------------------------------------------
+    handleRun(event) {
+        let jobName = event.target.title;
+        this.spinner.show();
+        this.inProcess = true;
+
+        runBatch({jobName: jobName})
+            .then(() => {
+                this.waitStateChange(jobName, 'RUNNING,SCHEDULED', this.spinner, () => {
+                    this.showToast('', 'Batch launched successfully!', 'success');
+                });
+            })
+            .catch(error => {
+                console.log('Error in: handleRun(' + jobName + ') ' + JSON.stringify(error));
+            });
+    }
+
+    handleStop(event) {
+        let jobName = event.target.title;
+        this.spinner.show();
+        this.inProcess = true;
+
+        stopBatch({jobName: jobName})
+            .then(() => {
+                this.waitStateChange(jobName, 'STOPPED', this.spinner, () => {
+                    this.showToast('', 'Batch stopped successfully!', 'success');
+                })
+            })
+            .catch(error => {
+                console.log('Error in: handleStop(' + jobName + ') ' + JSON.stringify(error));
+            });
+    }
+
+    handleDelete(event) {
+        let detailId = event.target.value;
+        this.spinner.show();
+        this.inProcess = true;
+
+        deleteBatch({detailId: detailId})
+            .then(data => {
+                let wrapper = JSON.parse(data);
+                this.notAddedBatches = wrapper.availableBatches;
+                this.showAddNew = this.notAddedBatches.length > 0;
+                this.jobs = wrapper.jobWrappers.length > 0 ? wrapper.jobWrappers : undefined;
+
+                this.inProcess = false;
+            })
+            .catch(error => {
+                console.log('Error in deleteBatch. ' + JSON.stringify(error));
+            })
+            .finally(() => {
+                this.spinner.hide();
+            });
+    }
+
+    handleEditDetail(event) {
+        let detailId = event.target.dataset.id;
+        this[NavigationMixin.Navigate]({
+            type: 'standard__recordPage',
+            attributes: {
+                recordId: detailId,
+                objectApiName: 'Batch_Detail__c',
+                actionName: 'edit'
+            },
+        });
+    }
+
+    //Create Record Handlers: ------------------------------------------------------------------------------------------
     handleClassChange(event) {
         this.batchClass = event.target.value;
     }
@@ -127,41 +183,6 @@ export default class BatchControlPanel extends LightningElement {
         this.batchScopeSize = event.target.value;
     }
 
-    //Handlers Remote: -------------------------------------------------------------------------------------------------
-    handleRun(event) {
-        let jobName = event.target.title;
-        let spinner = this.template.querySelector('c-ui-spinner');
-        spinner.show();
-        this.inProcess = true;
-
-        runBatch({jobName: jobName})
-            .then(() => {
-                this.waitStateChange(jobName, 'RUNNING,SCHEDULED', spinner, () => {
-                    this.showToast('', 'Batch launched successfully!', 'success');
-                });
-            })
-            .catch(error => {
-                console.log('Error in: handleRun(' + jobName + ') ' + JSON.stringify(error));
-            });
-    }
-
-    handleStop(event) {
-        let jobName = event.target.title;
-        let spinner = this.template.querySelector('c-ui-spinner');
-        spinner.show();
-        this.inProcess = true;
-
-        stopBatch({jobName: jobName})
-            .then(() => {
-                this.waitStateChange(jobName, 'STOPPED', spinner, () => {
-                    this.showToast('', 'Batch stopped successfully!', 'success');
-                })
-            })
-            .catch(error => {
-                console.log('Error in: handleStop(' + jobName + ') ' + JSON.stringify(error));
-            })
-    }
-
     handleAddBatch(event) {
         if (!this.batchClass || !this.batchLabel) {
             this.showToast('Failed', 'Please fill required fields');
@@ -169,8 +190,7 @@ export default class BatchControlPanel extends LightningElement {
         }
 
         this.inProcess = true;
-        let spinner = this.template.querySelector('c-ui-spinner');
-        spinner.show();
+        this.spinner.show();
 
         addBatch({
             apexClass: this.batchClass,
@@ -183,7 +203,6 @@ export default class BatchControlPanel extends LightningElement {
                 let wrapper = JSON.parse(data);
                 this.notAddedBatches = wrapper.availableBatches;
                 this.showAddNew = this.notAddedBatches.length > 0;
-                this.mods = wrapper.intervalMods;
                 this.jobs = wrapper.jobWrappers.length > 0 ? wrapper.jobWrappers : undefined;
 
                 this.inProcess = false;
@@ -193,8 +212,8 @@ export default class BatchControlPanel extends LightningElement {
                 console.log('Error after add batch. ' + JSON.stringify(error));
             })
             .finally(() => {
-                spinner.hide();
-            })
+                this.spinner.hide();
+            });
     }
 
     //Service methods: -------------------------------------------------------------------------------------------------

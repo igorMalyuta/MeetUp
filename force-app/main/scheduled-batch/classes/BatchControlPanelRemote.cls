@@ -4,7 +4,8 @@
 
 public class BatchControlPanelRemote {
 
-    public class BatchException extends Exception {}
+    public class BatchException extends Exception {
+    }
 
     public static final String SCHEDULED_EXTENDS = 'extends Batch_ScheduledAbstract';
     public static final List<String> ASYNC_STATUSES = new List<String>{
@@ -18,33 +19,28 @@ public class BatchControlPanelRemote {
     public static String getData() {
         try {
             List<Batch_Detail__c> batchDetails = [
-                    SELECT
-                            Id,
-                            Name,
-                            Interval_Mode__c,
-                            Relaunch_Interval__c,
-                            Scope_Size__c
+                    SELECT Name
                     FROM Batch_Detail__c
                     ORDER BY Name
             ];
             List<String> panelBatchNames = new List<String>();
-            for(Batch_Detail__c bc : batchDetails) panelBatchNames.add(bc.Name);
+            for (Batch_Detail__c bc : batchDetails) panelBatchNames.add(bc.Name);
 
             List<ApexClass> batches = (List<ApexClass>) [FIND :SCHEDULED_EXTENDS IN ALL FIELDS RETURNING ApexClass(Id, Name)][0];
             List<String> batchNames = new List<String>();
             for (ApexClass batch : batches) {
-                if(batch.Name.equals('BatchControlPanelRemote')) continue;
+                if (batch.Name.equals('BatchControlPanelRemote')) continue;
                 batchNames.add(batch.Name);
             }
 
             PanelWrapper wrapper = new PanelWrapper();
             wrapper.availableBatches = new List<String>();
-            for(String batchName : batchNames) {
-                if(!panelBatchNames.contains(batchName) ) wrapper.availableBatches.add(batchName);
+            for (String batchName : batchNames) {
+                if (!panelBatchNames.contains(batchName)) wrapper.availableBatches.add(batchName);
             }
 
             wrapper.intervalMods = new List<String>();
-            for(PicklistEntry ple : Batch_Detail__c.Interval_Mode__c.getDescribe().getPicklistValues()){
+            for (PicklistEntry ple : Batch_Detail__c.Interval_Mode__c.getDescribe().getPicklistValues()) {
                 wrapper.intervalMods.add(ple.value);
             }
 
@@ -55,7 +51,7 @@ public class BatchControlPanelRemote {
         }
     }
 
-    @AuraEnabled(Cacheable = true)
+    @AuraEnabled
     public static String getJobs() {
         try {
             List<Batch_Detail__c> batchDetails = [
@@ -66,7 +62,8 @@ public class BatchControlPanelRemote {
                             Panel_Label__c,
                             Relaunch_Interval__c,
                             Scope_Size__c
-                    FROM Batch_Detail__c ORDER BY Name
+                    FROM Batch_Detail__c
+                    ORDER BY Name
             ];
 
             Map<String, Batch_Detail__c> batchMap = new Map<String, Batch_Detail__c>();
@@ -100,10 +97,10 @@ public class BatchControlPanelRemote {
                     FROM AsyncApexJob
                     WHERE Status = 'Completed'
                     AND ApexClass.Name IN:batchMap.keySet()
-                    AND CompletedDate >=: System.now().addDays(-2)
+                    AND CompletedDate >= :System.now().addDays(-2)
                     ORDER BY CompletedDate DESC
             ]) {
-                if(!completedJobs.containsKey(aj.ApexClass.Name)) completedJobs.put(aj.ApexClass.Name, aj);
+                if (!completedJobs.containsKey(aj.ApexClass.Name)) completedJobs.put(aj.ApexClass.Name, aj);
             }
 
             Map<String, AsyncApexJob> abortedJobs = new Map<String, AsyncApexJob>();
@@ -111,11 +108,11 @@ public class BatchControlPanelRemote {
                     SELECT ApexClass.Name, CompletedDate, ExtendedStatus
                     FROM AsyncApexJob
                     WHERE Status = 'Aborted'
-                    AND ApexClass.Name IN: batchMap.keySet()
-                    AND CompletedDate >=: System.now().addDays(-2)
+                    AND ApexClass.Name IN:batchMap.keySet()
+                    AND CompletedDate >= :System.now().addDays(-2)
                     ORDER BY CompletedDate DESC
             ]) {
-                if(!abortedJobs.containsKey(aj.ApexClass.Name)) abortedJobs.put(aj.ApexClass.Name, aj);
+                if (!abortedJobs.containsKey(aj.ApexClass.Name)) abortedJobs.put(aj.ApexClass.Name, aj);
             }
 
             List<JobWrapper> jobWrappers = new List<JobWrapper>();
@@ -185,10 +182,22 @@ public class BatchControlPanelRemote {
         }
     }
 
+    @AuraEnabled
+    public static String deleteBatch(String detailId) {
+        try {
+            delete [SELECT Id FROM Batch_Detail__c WHERE Id = :detailId];
+
+            return getData();
+        } catch (Exception e) {
+            return (String) AuraExceptionHelper.throwException(e);
+        }
+    }
+
     public class JobWrapper {
         @AuraEnabled public String css;
         @AuraEnabled public String label;
         @AuraEnabled public String jobId;
+        @AuraEnabled public String detailId;
         @AuraEnabled public String jobName;
         @AuraEnabled public AsyncApexJob prevJob;
         @AuraEnabled public Datetime prevLaunch;
@@ -206,6 +215,7 @@ public class BatchControlPanelRemote {
                 Map<String, AsyncApexJob> abortedJobs
         ) {
             this.jobName = detail.Name;
+            this.detailId = detail.Id;
             this.label = detail.Panel_Label__c;
             this.intervalMode = detail.Interval_Mode__c;
             this.interval = (Integer) detail.Relaunch_Interval__c;
@@ -214,7 +224,7 @@ public class BatchControlPanelRemote {
             if (completedJobs.containsKey(jobName)) {
                 prevJob = completedJobs.get(jobName);
                 prevLaunch = completedJobs.get(jobName).CompletedDate;
-                Long prevExecutionMs = System.now().getTime() -  prevJob.CompletedDate.getTime();
+                Long prevExecutionMs = System.now().getTime() - prevJob.CompletedDate.getTime();
                 isStopped = prevExecutionMs > 30000;
             }
 
@@ -229,7 +239,7 @@ public class BatchControlPanelRemote {
                 state = 'SCHEDULED';
                 isStopped = false;
                 nextLaunch = scheduledBatches.get(jobName).NextFireTime;
-            } else if(abortedJobs.containsKey(jobName) || (completedJobs.isEmpty() && abortedJobs.isEmpty()) || isStopped){
+            } else if (abortedJobs.containsKey(jobName) || (completedJobs.isEmpty() && abortedJobs.isEmpty()) || isStopped) {
                 state = 'STOPPED';
                 css = 'bcp-state-stopped';
             } else {
