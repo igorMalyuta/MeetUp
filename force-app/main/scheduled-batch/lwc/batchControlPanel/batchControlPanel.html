@@ -78,7 +78,8 @@
                             <td>{job.interval}</td>
                             <td>
                                 <template if:true={job.isStopped}>
-                                    <lightning-button-icon title={job.jobName}
+                                    <lightning-button-icon title="Run"
+                                                           value={job.jobName}
                                                            icon-name="utility:play"
                                                            icon-class="slds-text-color_success"
                                                            size="small"
@@ -96,7 +97,8 @@
                                                            onclick={handleDelete}></lightning-button-icon>
                                 </template>
                                 <template if:false={job.isStopped}>
-                                    <lightning-button-icon title={job.jobName}
+                                    <lightning-button-icon title="Stop"
+                                                           value={job.jobName}
                                                            icon-name="utility:stop"
                                                            icon-class="slds-text-color_error"
                                                            size="small"

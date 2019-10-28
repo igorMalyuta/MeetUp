@@ -97,7 +97,7 @@ export default class BatchControlPanel extends NavigationMixin(LightningElement)
 
     //Batch Action Handlers: -------------------------------------------------------------------------------------------
     handleRun(event) {
-        let jobName = event.target.title;
+        let jobName = event.target.value;
         this.spinner.show();
         this.inProcess = true;
 
@@ -113,7 +113,7 @@ export default class BatchControlPanel extends NavigationMixin(LightningElement)
     }
 
     handleStop(event) {
-        let jobName = event.target.title;
+        let jobName = event.target.value;
         this.spinner.show();
         this.inProcess = true;
 
