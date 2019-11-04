@@ -4,4 +4,7 @@
     <description>Batch Control Panel</description>
     <isExposed>true</isExposed>
     <masterLabel>Batch Control Panel</masterLabel>
+    <targets>
+        <target>lightning__Tab</target>
+    </targets>
 </LightningComponentBundle>

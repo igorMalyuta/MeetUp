@@ -4,8 +4,14 @@
 
 public class BatchControlPanelRemote {
 
-    public class BatchException extends Exception {
+    public class BatchControlException extends Exception {
     }
+
+    private static final String STATE_RUNNING = 'RUNNING';
+    private static final String STATE_SCHEDULED = 'SCHEDULED';
+    private static final String STATE_STOPPED = 'STOPPED';
+    private static final String CSS_RUNNING = 'bcp-state-running';
+    private static final String CSS_STOPPED = 'bcp-state-stopped';
 
     public static final String SCHEDULED_EXTENDS = 'extends Batch_ScheduledAbstract';
     public static final List<String> ASYNC_STATUSES = new List<String>{
@@ -18,6 +24,13 @@ public class BatchControlPanelRemote {
     @AuraEnabled(Cacheable = true)
     public static String getData() {
         try {
+            List<ApexClass> batches = (List<ApexClass>) [FIND :SCHEDULED_EXTENDS IN ALL FIELDS RETURNING ApexClass(Id, Name)][0];
+            List<String> batchNames = new List<String>();
+            for (ApexClass batch : batches) {
+                if (batch.Name.equals('BatchControlPanelRemote')) continue;
+                batchNames.add(batch.Name);
+            }
+
             List<Batch_Detail__c> batchDetails = [
                     SELECT Name
                     FROM Batch_Detail__c
@@ -25,13 +38,6 @@ public class BatchControlPanelRemote {
             ];
             List<String> panelBatchNames = new List<String>();
             for (Batch_Detail__c bc : batchDetails) panelBatchNames.add(bc.Name);
-
-            List<ApexClass> batches = (List<ApexClass>) [FIND :SCHEDULED_EXTENDS IN ALL FIELDS RETURNING ApexClass(Id, Name)][0];
-            List<String> batchNames = new List<String>();
-            for (ApexClass batch : batches) {
-                if (batch.Name.equals('BatchControlPanelRemote')) continue;
-                batchNames.add(batch.Name);
-            }
 
             PanelWrapper wrapper = new PanelWrapper();
             wrapper.availableBatches = new List<String>();
@@ -126,7 +132,7 @@ public class BatchControlPanelRemote {
         }
     }
 
-    @AuraEnabled
+    @AuraEnabled(Cacheable = false)
     public static JobWrapper getState(String jobName) {
         try {
             JobWrapper wrapper;
@@ -136,7 +142,7 @@ public class BatchControlPanelRemote {
                     break;
                 }
             }
-            if (wrapper == null) throw new BatchException('No batch found!');
+            if (wrapper == null) throw new BatchControlException('No batch found!');
 
             return wrapper;
         } catch (Exception e) {
@@ -154,6 +160,17 @@ public class BatchControlPanelRemote {
                     Relaunch_Interval__c = interval,
                     Scope_Size__c = scopeSize
             );
+            return getData();
+        } catch (Exception e) {
+            return (String) AuraExceptionHelper.throwException(e);
+        }
+    }
+
+    @AuraEnabled
+    public static String deleteBatch(String detailId) {
+        try {
+            delete [SELECT Id FROM Batch_Detail__c WHERE Id = :detailId];
+
             return getData();
         } catch (Exception e) {
             return (String) AuraExceptionHelper.throwException(e);
@@ -179,17 +196,6 @@ public class BatchControlPanelRemote {
             if (jobWrapper.jobId != null) System.abortJob(jobWrapper.jobId);
         } catch (Exception e) {
             AuraExceptionHelper.throwException(e);
-        }
-    }
-
-    @AuraEnabled
-    public static String deleteBatch(String detailId) {
-        try {
-            delete [SELECT Id FROM Batch_Detail__c WHERE Id = :detailId];
-
-            return getData();
-        } catch (Exception e) {
-            return (String) AuraExceptionHelper.throwException(e);
         }
     }
 
@@ -229,23 +235,23 @@ public class BatchControlPanelRemote {
             }
 
             if (asyncBatches.containsKey(jobName)) {
-                css = 'bcp-state-running';
+                css = CSS_RUNNING;
                 jobId = asyncBatches.get(jobName).Id;
-                state = 'RUNNING';
+                state = STATE_RUNNING;
                 isStopped = false;
             } else if (scheduledBatches.containsKey(jobName)) {
-                css = 'bcp-state-running';
+                css = CSS_RUNNING;
                 jobId = scheduledBatches.get(jobName).Id;
-                state = 'SCHEDULED';
+                state = STATE_SCHEDULED;
                 isStopped = false;
                 nextLaunch = scheduledBatches.get(jobName).NextFireTime;
             } else if (abortedJobs.containsKey(jobName) || (completedJobs.isEmpty() && abortedJobs.isEmpty()) || isStopped) {
-                state = 'STOPPED';
-                css = 'bcp-state-stopped';
+                state = STATE_STOPPED;
+                css = CSS_STOPPED;
             } else {
-                state = 'RUNNING';
+                state = STATE_RUNNING;
                 isStopped = false;
-                css = 'bcp-state-running';
+                css = CSS_RUNNING;
             }
         }
     }
