@@ -48,10 +48,9 @@
                                 <template if:true={job.prevLaunch}>
                                     <!-- Apex Jobs page -->
                                     <a href="/lightning/setup/AsyncApexJobs/home">
-                                        <lightning-formatted-date-time value={job.prevLaunch} year="numeric"
-                                                                       month="short"
-                                                                       day="2-digit" hour="numeric" minute="numeric"
-                                                                       second="numeric"
+                                        <lightning-formatted-date-time value={job.prevLaunch}
+                                                                       year="numeric" month="short" day="2-digit"
+                                                                       hour="numeric" minute="numeric" second="numeric"
                                                                        weekday="long"></lightning-formatted-date-time>
                                     </a>
                                 </template>
@@ -68,9 +67,9 @@
                             </td>
                             <td>
                                 <template if:true={job.nextLaunch}>
-                                    <lightning-formatted-date-time value={job.nextLaunch} year="numeric" month="short"
-                                                                   day="2-digit" hour="numeric" minute="numeric"
-                                                                   second="numeric"
+                                    <lightning-formatted-date-time value={job.nextLaunch}
+                                                                   year="numeric" month="short" day="2-digit"
+                                                                   hour="numeric" minute="numeric" second="numeric"
                                                                    weekday="long"></lightning-formatted-date-time>
                                 </template>
                             </td>
