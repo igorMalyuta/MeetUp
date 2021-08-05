@@ -1,0 +1,4 @@
+/* BatchPanelCSSFix */
+.scheduleDT .slds-form-element__row {
+    flex-wrap: nowrap !important;
+}

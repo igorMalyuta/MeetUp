@@ -1,0 +1,27 @@
+<!--
+ - Created by Igor Malyuta on 27.11.2019.
+ -->
+
+<!-- Web Modal -->
+<template>
+    <section role="dialog" tabindex="-1" aria-modal="true" class={sectionClass}>
+        <div class="slds-modal__container">
+            <header class="slds-modal__header">
+                <lightning-button-icon alternative-text="Close"
+                                       class="slds-modal__close"
+                                       icon-name="utility:close"
+                                       variant="bare-inverse"
+                                       onclick={cancel}
+                                       size="large"></lightning-button-icon>
+                <h2 class="slds-modal__title slds-text-heading_medium slds-hyphenate">{headerText}</h2>
+            </header>
+            <div class="slds-modal__content slds-p-around_medium">
+                <slot name="body"></slot>
+            </div>
+            <footer class="slds-modal__footer">
+                <slot name="footer"></slot>
+            </footer>
+        </div>
+    </section>
+    <div class={backDropClass}></div>
+</template>

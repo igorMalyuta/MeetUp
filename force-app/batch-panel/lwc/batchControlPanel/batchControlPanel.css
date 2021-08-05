@@ -1,0 +1,104 @@
+/**
+ * Created by Igor Malyuta on 20.11.2019.
+ *
+ * WARNING: This LWC is part of a package ct-batch-panel. You'll lose any edits you make directly in the org if you reinstall or upgrade the package
+ */
+.bcp-panel {
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    min-height: 200px;
+    position: relative;
+}
+
+.bcp-table > thead > tr{
+    background-color: rgb(250, 250, 249);
+    font-weight: bold;
+    font-size: 13px;
+}
+
+.bcp-table > thead > tr > th {
+    height: 35px;
+}
+
+.bcp-table > thead > tr > th,
+.bcp-table > tbody > tr > td {
+   padding: 5px;
+}
+
+.bcp-table > tbody > tr,
+.bcp-table > thead > tr {
+    color:rgb(8, 7, 7);
+    border-top: 1px solid rgb(221, 219, 218);
+    border-bottom: 1px solid rgb(221, 219, 218);
+}
+
+.bcp-table-row > td {
+    padding: 5px;
+}
+
+.slds-form-element__icon {
+    vertical-align: super;
+    line-height: 0;
+}
+
+.slds-text-title_bold {
+    color: #585858;
+}
+
+/*Status color map*/
+.bcp-state-running,
+.bcp-state-stopped {
+    color: #ffffff;
+    padding: 2px 7px;
+    border-radius: 5px;
+}
+
+.bcp-state-stopped {
+    background-color: #c23934;
+}
+
+.bcp-state-running {
+    background-color: #068049;
+}
+
+.btc-add-button {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+.empty-message {
+    display: flex;
+    justify-content: center;
+    margin-top: 1em;
+    margin-bottom: 5em;
+    font-size: 1rem;
+    color: #999;
+}
+
+.nextSchedule {
+    min-width: 270px;
+    margin-top: 4px;
+}
+
+.no-wrap{
+    white-space: nowrap;
+}
+
+.batch-name-col {
+}
+
+.state-col{
+    max-width: 100px;
+}
+
+.prev-launch-col{
+    max-width: 180px;
+}
+
+.next-launch-col{
+    max-width: 300px;
+    width: 200px;
+    padding-right: 20px!important;
+}

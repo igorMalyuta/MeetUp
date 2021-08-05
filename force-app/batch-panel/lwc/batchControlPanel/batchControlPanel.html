@@ -1,0 +1,218 @@
+<!--
+ - Created by Igor Malyuta on 20.11.2019.
+ -
+ - WARNING: This LWC is part of a package ct-batch-panel. You'll lose any edits you make directly in the org if you reinstall or upgrade the package
+ -->
+
+<!-- Batch Control Panel -->
+<template>
+    <lightning-card title="Batches">
+        <div class="bcp-panel">
+            <c-web-spinner></c-web-spinner>
+            <template if:true={jobs}>
+                <!-- Batch Table -->
+                <div>
+                    <table class="bcp-table">
+                        <thead>
+                        <tr class="slds-line-height_reset jobs-header-row">
+                            <th scope="col" class="batch-name-col">
+                                <div class="slds-truncate" title="Job Name"
+                                     style="text-align: left">Job Name
+                                </div>
+                            </th>
+                            <th scope="col" class="state-col">
+                                <div class="slds-truncate" title="State">State</div>
+                            </th>
+                            <th scope="col" class="prev-launch-col">
+                                <div class="slds-truncate" title="Previous launch">Previous launch
+                                </div>
+                            </th>
+                            <th scope="col" class="next-launch-col">
+                                <div class="slds-truncate" title="Next launch">Next launch</div>
+                            </th>
+                            <th scope="col">
+                                <div class="slds-truncate" title="Last duration in minutes">Last duration min</div>
+                            </th>
+                            <th scope="col">
+                                <div class="slds-truncate" title="Interval mode">Interval mode</div>
+                            </th>
+                            <th scope="col">
+                                <div class="slds-truncate" title="Interval">Interval</div>
+                            </th>
+                            <th scope="col">
+                                <div class="slds-truncate" title="Scope">Scope</div>
+                            </th>
+                            <th scope="col">
+                                <div class="slds-truncate" title="Action">Action</div>
+                            </th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <template for:each={jobs} for:item="job">
+                            <tr key={job.detail.Name} class="slds-hint-parent bcp-table-row">
+                                <td data-label="Job Name" class="batch-name-col no-wrap">
+                                    <!-- Record Detail -->
+                                    <a href="javascript:void(0);" data-id={job.detail.Id}
+                                       onclick={handleEditDetail}>{job.detail.Panel_Label__c}</a>
+                                    <!-- Batch functionality description -->
+                                    <template if:true={job.description}>
+                                        <lightning-helptext
+                                                class="slds-p-left--xx-small"
+                                                style="position: relative; top: -4px;"
+                                                content={job.description}
+                                                icon-name="utility:info"></lightning-helptext>
+                                    </template>
+                                </td>
+                                <td class="state-col"><span class={job.css}>{job.state}</span></td>
+                                <td class="prev-launch-col">
+                                    <template if:true={job.prevLaunch}>
+                                        <!-- Apex Jobs page -->
+                                        <a href="/lightning/setup/AsyncApexJobs/home">
+                                            <lightning-formatted-date-time value={job.prevLaunch}
+                                                                           year="numeric" month="numeric"
+                                                                           day="2-digit"
+                                                                           hour="numeric" minute="numeric"
+                                                                           second="numeric"
+                                            ></lightning-formatted-date-time>
+                                        </a>
+                                    </template>
+                                    <template if:true={job.prevJob}>
+                                        <!-- Previous launch Error -->
+                                        <template if:true={job.prevJob.ExtendedStatus}>
+                                            <lightning-helptext
+                                                    class="slds-p-left--xx-small"
+                                                    content={job.prevJob.ExtendedStatus}
+                                                    icon-name="utility:warning"
+                                                    icon-variant="error"></lightning-helptext>
+                                        </template>
+                                    </template>
+                                </td>
+                                <td class="next-launch-col">
+                                    <template if:true={job.nextLaunch}>
+                                        <lightning-formatted-date-time value={job.nextLaunch}
+                                                                       year="numeric" month="numeric" day="2-digit"
+                                                                       hour="numeric" minute="numeric"
+                                                                       second="numeric"
+                                        ></lightning-formatted-date-time>
+                                    </template>
+                                    <template if:true={job.isStopped}>
+                                        <template if:false={job.nextLaunch}>
+                                            <div class="nextSchedule">
+                                                <lightning-input type="datetime" label="" variant="label-hidden"
+                                                                 class="scheduleDT" data-id={job.detail.Id}
+                                                                 min={minScheduledDate} value={job.nextSchedule}
+                                                                 onchange={handleSetLaunchTime}></lightning-input>
+                                            </div>
+                                        </template>
+                                    </template>
+                                </td>
+                                <td><lightning-formatted-number value={job.detail.Last_Duration_Min__c} maximum-fraction-digits="2"></lightning-formatted-number></td>
+                                <td>{job.detail.Interval_Mode__c}</td>
+                                <td>{job.detail.Relaunch_Interval__c}</td>
+                                <td>{job.detail.Scope_Size__c}</td>
+                                <td class="no-wrap">
+                                    <template if:true={job.isStopped}>
+                                        <lightning-button-icon title="Run"
+                                                               value={job.detail.Name}
+                                                               icon-name="utility:play"
+                                                               icon-class="slds-text-color_success"
+                                                               size="small"
+                                                               variant="border-filled"
+                                                               alternative-text="Run Batch"
+                                                               onclick={handleRun}></lightning-button-icon>
+                                        <lightning-button-icon title={job.detail.Name}
+                                                               value={job.detail.Id}
+                                                               icon-name="utility:delete"
+                                                               icon-class="slds-text-color--weak"
+                                                               class="slds-p-left--small"
+                                                               size="small"
+                                                               variant="border-filled"
+                                                               alternative-text="Delete Batch"
+                                                               onclick={handleDelete}></lightning-button-icon>
+                                    </template>
+                                    <template if:false={job.isStopped}>
+                                        <lightning-button-icon title="Stop"
+                                                               value={job.detail.Name}
+                                                               icon-name="utility:stop"
+                                                               icon-class="slds-text-color_error"
+                                                               size="small"
+                                                               variant="border-filled"
+                                                               alternative-text="Stop Batch"
+                                                               onclick={handleStop}></lightning-button-icon>
+                                        <lightning-button-icon title="Relaunch"
+                                                               value={job.detail.Name}
+                                                               icon-name="utility:refresh"
+                                                               icon-class="slds-text-color_success"
+                                                               class="slds-p-left--small"
+                                                               size="small"
+                                                               variant="border-filled"
+                                                               alternative-text="Relaunch Batch"
+                                                               onclick={handleRelaunch}></lightning-button-icon>
+                                        <lightning-button-icon title={job.detail.Name}
+                                                               icon-name="utility:delete"
+                                                               class="slds-p-left--small"
+                                                               size="small"
+                                                               variant="border-filled"
+                                                               alternative-text="Delete Batch"
+                                                               disabled></lightning-button-icon>
+                                    </template>
+                                </td>
+                            </tr>
+                        </template>
+                        </tbody>
+                    </table>
+                </div>
+            </template>
+            <template if:true={showNowItems}>
+                <div class="empty-message">There are no items to display</div>
+            </template>
+
+            <!-- Add Batch on Panel -->
+            <template if:true={showAddNew}>
+                <div class="btc-add-button">
+                    <lightning-button label="Add new Job" onclick={handleAddJobClick} variant="Brand"></lightning-button>
+                </div>
+            </template>
+
+            <c-web-modal header-text="Add Batch to the Panel" size="small">
+                <div slot="body">
+                    <lightning-record-edit-form object-api-name="Batch_Detail__c">
+                        <lightning-messages></lightning-messages>
+                        <lightning-combobox
+                                label="Select Batch"
+                                placeholder="Select Apex Class"
+                                value={batchDetail.Name}
+                                onchange={handleClassChange}
+                                options={batchClasses}></lightning-combobox>
+                        <lightning-input label="Batch label" value={batchDetail.Panel_Label__c}
+                                         onchange={handleLabelChange}></lightning-input>
+                        <lightning-combobox
+                                label="Select Interval mode"
+                                value={batchDetail.Interval_Mode__c}
+                                onchange={handleModeChange}
+                                options={intervalMods}></lightning-combobox>
+                        <lightning-input type="number" label="Relaunch interval"
+                                         value={batchDetail.Relaunch_Interval__c}
+                                         onchange={handleIntervalChange}
+                                         step="1" min="1"></lightning-input>
+                        <lightning-input type="number" label="Scope size"
+                                         value={batchDetail.Scope_Size__c}
+                                         onchange={handleScopeChange}
+                                         step="1" min="1" max="200"></lightning-input>
+                        <lightning-input type="checkbox" label="Launch now"
+                                         class="slds-m-top_small"
+                                         value={launchNow}
+                                         checked={launchNow}
+                                         onchange={handleLaunchNow}></lightning-input>
+                    </lightning-record-edit-form>
+                </div>
+                <div slot="footer">
+                    <lightning-button class="slds-m-top_small" type="submit" variant="Brand"
+                                      label="Create new Batch Detail"
+                                      onclick={handleAddBatch}>
+                    </lightning-button>
+                </div>
+            </c-web-modal>
+        </div>
+    </lightning-card>
+</template>
