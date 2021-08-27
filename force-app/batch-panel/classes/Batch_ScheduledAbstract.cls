@@ -11,8 +11,6 @@ public abstract class Batch_ScheduledAbstract implements Database.Batchable<SObj
     public static final String INTERVAL_DAYS = 'Days';
     public static final String INTERVAL_WEEKS = 'Weeks';
     public static final String INTERVAL_MONTHS = 'Months';
-    
-    private Long startTimeMs = Datetime.now().getTime();
 
     public abstract Type getType();
 
@@ -47,7 +45,7 @@ public abstract class Batch_ScheduledAbstract implements Database.Batchable<SObj
     public virtual Integer getRecommendedScopeSize() {
         return 200;
     }
-    
+
     /**
      * Final logic will be executed in finish
      */
@@ -55,7 +53,7 @@ public abstract class Batch_ScheduledAbstract implements Database.Batchable<SObj
 
     }
 
-    public virtual void finish(Database.BatchableContext bc) {
+    public void finish(Database.BatchableContext bc) {
         finalAction();
         List<Batch_Detail__c> batchDetails = [
                 SELECT
@@ -66,6 +64,8 @@ public abstract class Batch_ScheduledAbstract implements Database.Batchable<SObj
                 WHERE Name = :getType().getName()
         ];
         if (!batchDetails.isEmpty()) {
+            Long startTimeMs = Test.isRunningTest() ? 5000L : [SELECT CreatedDate FROM AsyncApexJob WHERE Id = :bc.getJobId()].CreatedDate.getTime();
+
             Batch_Detail__c detail = batchDetails.get(0);
             detail.Last_Duration_Min__c = (0.0 + Datetime.now().getTime() - startTimeMs)/(1000*60);
             update detail;
@@ -103,7 +103,6 @@ public abstract class Batch_ScheduledAbstract implements Database.Batchable<SObj
                 minutes = interval;
             }
         }
-
         return minutes;
     }
 }
