@@ -49,12 +49,12 @@ public abstract class Batch_ScheduledAbstract implements Database.Batchable<SObj
     /**
      * Final logic will be executed in finish
      */
-    public virtual void finalAction() {
+    public virtual void finalAction(Database.BatchableContext bc) {
 
     }
 
     public void finish(Database.BatchableContext bc) {
-        finalAction();
+        finalAction(bc);
         List<Batch_Detail__c> batchDetails = [
                 SELECT
                         Interval_Mode__c,
